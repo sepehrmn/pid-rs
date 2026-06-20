@@ -22,8 +22,8 @@ dependencies = ["numpy>=1.26"]
 dynamic = ["version"]
 
 [project.urls]
-Repository = "https://github.com/sepehrmn/pid-rs"
-Homepage = "https://github.com/sepehrmn/pid-rs"
+Repository = "https://github.com/sepahead/pid-rs"
+Homepage = "https://github.com/sepahead/pid-rs"
 
 [tool.maturin]
 # The Rust crate lives alongside this file; build the stable-ABI extension module.

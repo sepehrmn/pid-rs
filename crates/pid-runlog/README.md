@@ -1,6 +1,6 @@
 # pid-runlog
 
-[![CI](https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml)
+[![CI](https://github.com/sepahead/pid-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sepahead/pid-rs/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 A versioned, content-addressed **run-log schema** and replay/validation helpers for reproducible
@@ -26,7 +26,7 @@ pid-runlog-replay --write-sidecars <run-log.jsonl>     # write validation/summar
 pid-runlog-replay --verify-sidecars <run-log.jsonl>    # re-derive and check sidecars
 ```
 
-See the [repository README](https://github.com/sepehrmn/pid-rs) for context.
+See the [repository README](https://github.com/sepahead/pid-rs) for context.
 
 ## License
 

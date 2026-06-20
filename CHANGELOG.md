@@ -50,5 +50,5 @@ panicking on invalid configuration (the lower-level `block_bootstrap`/`block_boo
 their documented `assert`-on-invalid-config contract). See
 [Known limitations](README.md#known-limitations) for the tracked follow-ups.
 
-[Unreleased]: https://github.com/sepehrmn/pid-rs/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/sepehrmn/pid-rs/releases/tag/v0.1.0
+[Unreleased]: https://github.com/sepahead/pid-rs/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sepahead/pid-rs/releases/tag/v0.1.0

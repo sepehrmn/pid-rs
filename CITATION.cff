@@ -6,8 +6,8 @@ type: software
 authors:
   - family-names: Mahmoudian
     given-names: Sepehr
-repository-code: "https://github.com/sepehrmn/pid-rs"
-url: "https://github.com/sepehrmn/pid-rs"
+repository-code: "https://github.com/sepahead/pid-rs"
+url: "https://github.com/sepahead/pid-rs"
 license: "MIT OR Apache-2.0"
 version: "0.1.0"
 date-released: "2026-06-17"

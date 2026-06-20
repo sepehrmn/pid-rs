@@ -14,7 +14,7 @@ reports, documentation, tests, and code.
 ## Development
 
 ```bash
-git clone https://github.com/sepehrmn/pid-rs
+git clone https://github.com/sepahead/pid-rs
 cd pid-rs
 
 cargo test --workspace --exclude pid-python  # tests (mirror CI)

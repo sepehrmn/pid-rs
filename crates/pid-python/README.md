@@ -1,6 +1,6 @@
 # pid-core-rs (Python bindings)
 
-[![CI](https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml)
+[![CI](https://github.com/sepahead/pid-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sepahead/pid-rs/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 Python bindings (via [PyO3](https://pyo3.rs) + [maturin](https://www.maturin.rs)) for
@@ -39,7 +39,7 @@ Inputs are 2-D, C-contiguous, finite `float64` arrays of shape `(n_samples, n_di
 15 functions are exported (MI, redundancy, co-information, 2-/3-source PID, 2-/3-source discrete PID,
 Shannon invariants, geometry diagnostics, and PCA/PLS/hash/standardize preprocessing).
 
-Some surface is experimental (e.g. the `hyperbolic`/`lorentz` metric is MI-only and unvalidated for ISX, and discrete PID is a different measure from the continuous `I^sx_∩` — do not pool their atoms). See the [repository README](https://github.com/sepehrmn/pid-rs) for the estimator references and scientific cautions, which apply equally here.
+Some surface is experimental (e.g. the `hyperbolic`/`lorentz` metric is MI-only and unvalidated for ISX, and discrete PID is a different measure from the continuous `I^sx_∩` — do not pool their atoms). See the [repository README](https://github.com/sepahead/pid-rs) for the estimator references and scientific cautions, which apply equally here.
 
 ## License
 

@@ -1,6 +1,6 @@
 # pid-core
 
-[![CI](https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml)
+[![CI](https://github.com/sepahead/pid-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sepahead/pid-rs/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 Continuous mutual-information and **shared-exclusions partial information decomposition**
@@ -22,7 +22,7 @@ println!("Red={:.3} Unq1={:.3} Unq2={:.3} Syn={:.3}",
 # Ok::<(), pid_core::PidError>(())
 ```
 
-See the [repository README](https://github.com/sepehrmn/pid-rs) for the full feature list,
+See the [repository README](https://github.com/sepahead/pid-rs) for the full feature list,
 estimator references, scientific cautions, and validation strategy.
 
 ## License

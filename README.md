@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml"><img src="https://github.com/sepehrmn/pid-rs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/sepahead/pid-rs/actions/workflows/ci.yml"><img src="https://github.com/sepahead/pid-rs/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="#license"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg" alt="License: MIT OR Apache-2.0"></a>
   <img src="https://img.shields.io/badge/rustc-1.80%2B-orange.svg" alt="MSRV 1.80">
   <img src="https://img.shields.io/badge/unsafe-forbidden-success.svg" alt="unsafe forbidden">
@@ -115,7 +115,7 @@ repeat the per-claim detail in [Conventions](#conventions),
 
 ```toml
 [dependencies]
-pid-core = { git = "https://github.com/sepehrmn/pid-rs" }
+pid-core = { git = "https://github.com/sepahead/pid-rs" }
 ```
 
 > A crates.io release is planned; until then, depend on the Git repository.
