@@ -9,6 +9,7 @@ Continuous mutual-information and **shared-exclusions partial information decomp
 ```rust
 use pid_core::{pid2_isx, IsxConfig, KsgConfig, MatRef, Pid2Config};
 
+// Columns are dimensions, rows are samples. Here: scalar S1, S2, T (n samples each).
 let s1 = MatRef::new(&s1_data, n, 1)?;
 let s2 = MatRef::new(&s2_data, n, 1)?;
 let t  = MatRef::new(&t_data,  n, 1)?;
@@ -17,7 +18,7 @@ let pid = pid2_isx(s1, s2, t, &Pid2Config {
     isx: IsxConfig::default(),
 })?;
 println!("Red={:.3} Unq1={:.3} Unq2={:.3} Syn={:.3}",
-         pid.redundancy, pid.unique_s1, pid.unique_s2, pid.synergy);
+         pid.redundancy, pid.unique_s1, pid.unique_s2, pid.synergy); // values in nats
 # Ok::<(), pid_core::PidError>(())
 ```
 

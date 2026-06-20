@@ -9,7 +9,7 @@ labels: bug
 A clear description of what is wrong.
 
 **To reproduce**
-Minimal code or command, ideally with a small fixed dataset/seed:
+Minimal code or command (Rust, the `pid_core_rs` Python module, or a CLI like `exp0`/`pid-runlog-replay`), ideally with a small fixed dataset/seed:
 
 ```rust
 // ...
@@ -21,6 +21,7 @@ What you expected, and what happened (include the numerical value or panic messa
 **Environment**
 - pid-rs version / commit:
 - Rust version (`rustc --version`):
+- (if using the Python bindings) Python / NumPy / maturin versions:
 - OS:
 
 **Additional context**

@@ -1,6 +1,6 @@
 [package]
 name = "pid-runlog"
-description = "Versioned, hash-chained run-log schema and replay/validation helpers for reproducible PID pipelines"
+description = "Versioned, content-addressed run-log schema and replay/validation helpers for reproducible PID pipelines"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
