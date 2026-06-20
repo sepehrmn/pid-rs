@@ -6,7 +6,7 @@
 Continuous mutual-information and **shared-exclusions partial information decomposition**
 (`I^sx_∩` PID) estimators in safe Rust (`#![forbid(unsafe_code)]`).
 
-```rust
+```rust,ignore
 use pid_core::{pid2_isx, IsxConfig, KsgConfig, MatRef, Pid2Config};
 
 // Columns are dimensions, rows are samples. Here: scalar S1, S2, T (n samples each).

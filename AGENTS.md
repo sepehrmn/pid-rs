@@ -124,6 +124,38 @@ pytest crates/pid-python/tests -q
 - **Scientific changes:** a change that alters a numerical result must justify *why* the new value is
   correct (analytic ground truth or a cited paper), not merely that tests still pass.
 
+## README-iff invariant (where READMEs may live, and how they wire in)
+
+A directory gets a `README.md` **if and only if** it is one of:
+
+- a **published artifact** (a crate published to crates.io, or a package published to PyPI), or
+- a **directly-consumed unit** (something a human runs/imports on its own — a CLI, an example, a
+  vendored tool), or
+- a **browsed-asset directory** (a folder a reader lands in and expects orientation — e.g. the repo
+  root, `crates/`).
+
+No other directory should grow a stray `README.md`. If a folder is neither published, nor directly
+consumed, nor browsed, it does not get one.
+
+Wiring rules for the READMEs that do exist:
+
+- **Rust library crates** (`pid-core`, `pid-runlog`): the crate README is the canonical crate-level
+  doc and is wired into rustdoc via `#![doc = include_str!("../README.md")]` at the top of
+  `src/lib.rs`. Because `include_str!` makes every ` ```rust ` and every **bare** ` ``` ` fence in
+  the README a compiled-and-run doctest, audit the fences before wiring and re-fence:
+  - prose / shell / commands / TOML / program output → ` ```text ` (never executed),
+  - complete Rust that compiles but must not run → ` ```no_run `,
+  - illustrative / incomplete / pseudocode Rust that won't compile (e.g. undefined vars like
+    `s1_data` / `n`) → ` ```rust,ignore `.
+  The bar is: `cargo test --doc -p <crate>` and
+  `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps -p <crate>` both pass clean. Each such crate's
+  `Cargo.toml` also carries `readme = "README.md"`, `documentation = "https://docs.rs/<crate>"`, and
+  a `[package.metadata.docs.rs]` block (`all-features = true`, `rustdoc-args = ["--cfg", "docsrs"]`).
+- **maturin / PyO3 extension crates** (`pid-python`): wire the README with the `readme = "README.md"`
+  manifest key **only** — do **not** add `#![doc = include_str!(...)]`. Their rustdoc is not the
+  primary documentation surface, and a standalone README plus `readme=` avoids any risk to the
+  maturin/`abi3` build.
+
 ## Before you push
 
 Run the build/test/lint block above (all must be clean), update `CHANGELOG.md` under

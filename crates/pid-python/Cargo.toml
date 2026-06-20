@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
+readme = "README.md"
 publish = false # distributed as a Python wheel (via maturin), not on crates.io
 
 [lib]

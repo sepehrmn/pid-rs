@@ -80,6 +80,21 @@ jobs:
             --summary-json /tmp/summary.json --runlog /tmp/run.jsonl
           cargo run -p pid-runlog --bin pid-runlog-replay -- --validate /tmp/run.jsonl
 
+  version-coherence:
+    name: Version coherence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Read-only guard: the Cargo workspace version and CITATION.cff version
+      # must agree (there is no package.json in this repo). Catches a release
+      # that bumps one but forgets the other. On a tag push it also asserts the
+      # tag peels to its commit and that the tag version matches the tree.
+      - name: Internal version coherence (HEAD)
+        run: scripts/check-version-coherence.sh
+      - name: Version coherence (tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: scripts/check-version-coherence.sh "${GITHUB_REF_NAME}"
+
   supply-chain:
     name: Supply chain (cargo-deny)
     runs-on: ubuntu-latest

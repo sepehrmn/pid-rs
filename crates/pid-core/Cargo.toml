@@ -13,6 +13,10 @@ readme = "README.md"
 keywords = ["information-theory", "mutual-information", "entropy", "pid", "estimator"]
 categories = ["science", "mathematics", "algorithms"]
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [lib]
 name = "pid_core"
 path = "src/lib.rs"

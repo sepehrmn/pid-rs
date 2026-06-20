@@ -8,9 +8,14 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
+documentation = "https://docs.rs/pid-runlog"
 readme = "README.md"
 keywords = ["logging", "provenance", "schema", "reproducibility"]
 categories = ["science", "development-tools"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 name = "pid_runlog"

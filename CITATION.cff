@@ -6,6 +6,7 @@ type: software
 authors:
   - family-names: Mahmoudian
     given-names: Sepehr
+    email: sepmhn@gmail.com
 repository-code: "https://github.com/sepahead/pid-rs"
 url: "https://github.com/sepahead/pid-rs"
 license: "MIT OR Apache-2.0"

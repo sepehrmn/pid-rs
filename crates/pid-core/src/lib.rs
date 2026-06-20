@@ -1,3 +1,7 @@
+#![doc = include_str!("../README.md")]
+//!
+//! ---
+//!
 //! `pid-core`: continuous mutual information + shared-exclusions PID (`I^sx_∩`) estimators.
 //!
 //! This crate implements:

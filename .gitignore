@@ -23,3 +23,6 @@ __pycache__/
 
 # Claude Code: commit shared project settings (.claude/settings.json), ignore local overrides
 .claude/settings.local.json
+
+# Agent-tool scratch directories
+.playwright-mcp/
