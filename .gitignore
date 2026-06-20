@@ -20,3 +20,6 @@ __pycache__/
 # Local scratch
 /tmp/
 *.profraw
+
+# Claude Code: commit shared project settings (.claude/settings.json), ignore local overrides
+.claude/settings.local.json
