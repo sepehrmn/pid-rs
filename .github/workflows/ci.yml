@@ -30,8 +30,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # pid-python is a PyO3 extension module; it is built and tested in the `python` job
       # (via maturin), so plain `cargo test` never tries to link libpython here.
-      - run: cargo test --workspace --exclude pid-python
-      - run: cargo test -p pid-core --features parallel
+      - run: cargo test --locked --workspace --exclude pid-python
+      - run: cargo test --locked -p pid-core --features parallel
 
   lint:
     name: Rustfmt + Clippy
@@ -43,8 +43,8 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo clippy -p pid-core --all-targets --features parallel -- -D warnings
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo clippy --locked -p pid-core --all-targets --features parallel -- -D warnings
 
   docs:
     name: Docs
@@ -57,7 +57,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # pid-python is excluded: its API is documented via README + Python docstrings, not
       # rustdoc, and rustdoc on the numpy crate's re-exports hits an upstream ICE.
-      - run: cargo doc --workspace --no-deps --exclude pid-python
+      - run: cargo doc --locked --workspace --no-deps --exclude pid-python
 
   msrv:
     name: MSRV (1.80)
@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@1.80
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check --workspace
+      - run: cargo check --locked --workspace
 
   smoke:
     name: exp0 + run-log replay smoke
@@ -79,6 +79,20 @@ jobs:
           cargo run -p pid-core --bin exp0 -- --seeds 1 \
             --summary-json /tmp/summary.json --runlog /tmp/run.jsonl
           cargo run -p pid-runlog --bin pid-runlog-replay -- --validate /tmp/run.jsonl
+
+  supply-chain:
+    name: Supply chain (cargo-deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      # cargo-deny: advisories + licenses + bans + sources, gated by ./deny.toml.
+      # `--all-features` so the `parallel` cabal of deps is included in the scan.
+      # Fails closed: the action exits non-zero on any deny-level finding.
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+          arguments: --all-features --locked
 
   python:
     name: Python bindings (${{ matrix.os }})
