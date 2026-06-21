@@ -6,7 +6,7 @@ pid-rs is pre-1.0. Security fixes are shipped in a new patch release on the late
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x   | ✅        |
+| 0.2.x   | ✅        |
 
 ## Reporting a vulnerability
 
