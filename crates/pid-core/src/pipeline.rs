@@ -17,6 +17,7 @@ use crate::pid2::{pid2_isx, Pid2Config, Pid2Result};
 use crate::pid3::{pid3_isx, Antichain3, Pid3Config, Pid3Result};
 use crate::pls::PlsProjector;
 use crate::preprocess::SplitMix64;
+use crate::sxpid::discrete_sxpid2;
 
 // ── PLS → PID3 ─────────────────────────────────────────────────────────────
 
@@ -1028,6 +1029,62 @@ where
         n_boot: cfg.n_boot,
         block_size: cfg.block_size,
         scheme,
+    })
+}
+
+/// Bootstrap confidence intervals for the averaged 2-source discrete SxPID (`i^sx_∩`) atoms.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DiscreteSxPid2BootstrapResult {
+    pub redundancy: RowBootstrapStat,
+    pub unique_s1: RowBootstrapStat,
+    pub unique_s2: RowBootstrapStat,
+    pub synergy: RowBootstrapStat,
+    pub n_boot: usize,
+    pub block_size: usize,
+}
+
+/// Dependence-aware bootstrap confidence intervals for the averaged discrete SxPID atoms
+/// (`discrete_sxpid2`).
+///
+/// Resampling uses a moving-block bootstrap **with replacement and no jitter**
+/// ([`RowResampleScheme::BlockBootstrapJitter`] with `jitter_rel = 0`): unlike the kNN/KSG
+/// estimators, the discrete (counting-based) SxPID is unaffected by duplicate rows, and jitter
+/// would corrupt the discrete labels. Set `cfg.block_size = 1` for i.i.d. data, or a larger block
+/// for autocorrelated (e.g. time-series) data. The percentile interval is the
+/// `(1 − cfg.alpha)` two-sided CI of each atom over the resamples.
+///
+/// This mirrors the uncertainty story IDTxl provides for PID via its surrogate framework.
+pub fn bootstrap_discrete_sxpid2(
+    s1: MatRef<'_>,
+    s2: MatRef<'_>,
+    t: MatRef<'_>,
+    num_bins: usize,
+    cfg: &BootstrapConfig,
+) -> PidResult<DiscreteSxPid2BootstrapResult> {
+    let stat = |mats: &[MatRef<'_>]| -> PidResult<Vec<f64>> {
+        let r = discrete_sxpid2(mats[0], mats[1], mats[2], num_bins)?;
+        Ok(vec![r.red.net, r.unq1.net, r.unq2.net, r.syn.net])
+    };
+    let res = bootstrap_rows_stats(
+        &[s1, s2, t],
+        cfg,
+        RowResampleScheme::BlockBootstrapJitter { jitter_rel: 0.0 },
+        stat,
+    )?;
+    let mut it = res.stats.into_iter();
+    let mut next = || {
+        it.next().ok_or(PidError::InvalidConfig {
+            context: "bootstrap_discrete_sxpid2",
+            message: "missing bootstrap statistic",
+        })
+    };
+    Ok(DiscreteSxPid2BootstrapResult {
+        redundancy: next()?,
+        unique_s1: next()?,
+        unique_s2: next()?,
+        synergy: next()?,
+        n_boot: res.n_boot,
+        block_size: res.block_size,
     })
 }
 
