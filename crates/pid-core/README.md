@@ -22,6 +22,29 @@ println!("Red={:.3} Unq1={:.3} Unq2={:.3} Syn={:.3}",
 # Ok::<(), pid_core::PidError>(())
 ```
 
+## Discrete shared-exclusions PID (`i^sx_∩`)
+
+For discrete (or quantized) data, `discrete_sxpid2` / `discrete_sxpid3` compute the genuine
+shared-exclusions PID of Makkeh, Gutknecht & Wibral (2021) — the discrete sibling of the
+continuous `I^sx_∩`, validated **bit-for-bit** against the reference IDTxl wraps. The output is
+both **pointwise** (per-realization, signed) and **averaged** atoms, each split into informative
+and misinformative parts. Units are nats; atoms may be negative and are never clamped.
+
+```rust,ignore
+use pid_core::{discrete_sxpid2, MatRef};
+
+let r = discrete_sxpid2(s1, s2, t, /* num_bins = */ 4)?;
+println!("Red={:.3} Unq1={:.3} Unq2={:.3} Syn={:.3}",
+         r.red.net, r.unq1.net, r.unq2.net, r.syn.net);
+for p in &r.pointwise {                 // signed per-realization atoms
+    println!("p={:.3} red={:+.3}", p.prob, p.red.net);
+}
+# Ok::<(), pid_core::PidError>(())
+```
+
+This differs from `discrete_pid2`/`discrete_pid3` (Williams & Beer `I_min`) — the measure SxPID was
+built to replace. A runnable demo on canonical gates: `cargo run --release --example discrete_sxpid`.
+
 See the [repository README](https://github.com/sepahead/pid-rs) for the full feature list,
 estimator references, scientific cautions, and validation strategy.
 

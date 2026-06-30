@@ -39,6 +39,10 @@ samples of sources `S1, S2, …` and a target `T` and it estimates how much of t
 - **2- and 3-source PID atoms** whose Möbius identities (`Red + Unq₁ + Unq₂ + Syn = I(S1,S2;T)`)
   **hold by construction** and are asserted in tests.
 - **Discrete `I_min` PID** over the full 18-antichain 3-source lattice (Williams & Beer 2010).
+- **Discrete shared-exclusions PID `i^sx_∩`** (Makkeh–Gutknecht–Wibral 2021) — pointwise *and*
+  averaged signed atoms with informative/misinformative split, **bit-faithful to the reference
+  IDTxl wraps** (Abzinger/SxPID) for 2- and 3-source. The discrete counterpart of the continuous
+  `I^sx_∩`, so the library decomposes information with one measure across regimes.
 - **Shannon invariants** — co-information, O-information, and the average degrees of redundancy
   (`r̄`) and vulnerability (`v̄`) (Gutknecht et al. 2025) — as cheap screening statistics.
 - **Geometry diagnostics** — intrinsic dimension (Levina–Bickel), distance concentration, Gromov
@@ -69,6 +73,7 @@ repeat the per-claim detail in [Conventions](#conventions),
 | **Continuous `I^sx_∩`** | Ehrlich et al. 2024 disjunction-neighbourhood kNN redundancy (`IsxMethod::EhrlichKsg`); checked against a fixed-data reference. |
 | **2- & 3-source PID atoms** | `pid2_isx` / `pid3_isx`; Möbius identities (`Red + Unq₁ + Unq₂ + Syn = I(S1,S2;T)`) hold by construction and are asserted in tests within `1e-10`. |
 | **Discrete `I_min` PID** | `discrete_pid2` / `discrete_pid3` over the full 18-antichain 3-source lattice (Williams & Beer 2010), with equal-width quantisation. |
+| **Discrete SxPID `i^sx_∩`** | `discrete_sxpid2` / `discrete_sxpid3` (Makkeh–Gutknecht–Wibral 2021); pointwise + averaged signed atoms with informative/misinformative split, **bit-faithful** to the Abzinger/SxPID + IDTxl reference values to `1e-12`. |
 | **Shannon invariants** | Co-information, O-information, `r̄`, `v̄` (Gutknecht et al. 2025) as cheap screening statistics. |
 | **Geometry diagnostics** | Intrinsic dimension (Levina–Bickel), distance concentration, Gromov hyperbolicity — to decide whether a continuous-kNN regime is even valid. |
 | **Preprocessing / PLS** | Standardisation, PCA, hash (CountSketch) projection, seeded jitter, and supervised PLS with CV component selection. |
@@ -145,10 +150,11 @@ println!("Red={:.3}  Unq1={:.3}  Unq2={:.3}  Syn={:.3}",
 # Ok::<(), pid_core::PidError>(())
 ```
 
-Run the worked example end-to-end:
+Run the worked examples end-to-end:
 
 ```bash
-cargo run --release --example ksg_and_pid
+cargo run --release --example ksg_and_pid       # continuous KSG MI + I^sx_∩ PID
+cargo run --release --example discrete_sxpid     # discrete shared-exclusions PID on logic gates
 ```
 
 ## Conventions
@@ -235,7 +241,8 @@ quantification* and *convenience-API ergonomics*.
 | Component | Reference |
 |---|---|
 | KSG mutual information | Kraskov, Stögbauer &amp; Grassberger (2004), *Phys. Rev. E* **69**, 066138 |
-| Shared-exclusions redundancy `I^sx_∩` (discrete) | Makkeh, Gutknecht &amp; Wibral (2021), *Phys. Rev. E* **103**, 032149 |
+| Shared-exclusions redundancy `i^sx_∩` (discrete `discrete_sxpid2/3`) | Makkeh, Gutknecht &amp; Wibral (2021), *Phys. Rev. E* **103**, 032149; reference impl. IDTxl `pid_goettingen` / Abzinger/SxPID |
+| Parthood / formal-logic foundation of PID | Gutknecht, Wibral &amp; Makkeh (2021), [arXiv:2008.09535](https://arxiv.org/abs/2008.09535) |
 | Continuous `I^sx_∩` kNN estimator | Ehrlich, Schick-Poland, Makkeh, Lanfermann, Wollstadt &amp; Wibral (2024), [arXiv:2311.06373](https://arxiv.org/abs/2311.06373) |
 | `I_min` redundancy &amp; the PID lattice | Williams &amp; Beer (2010), [arXiv:1004.2515](https://arxiv.org/abs/1004.2515) |
 | Shannon invariants (`r̄`, `v̄`, O-information) | Gutknecht et al. (2025), [arXiv:2504.15779](https://arxiv.org/abs/2504.15779) |

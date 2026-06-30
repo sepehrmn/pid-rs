@@ -56,14 +56,16 @@ the same stem under `crates/pid-core/tests/`).
 | `pid2.rs` | `pid2_isx`, `Pid2Config`, `Pid2Result` | 2-source PID atoms (Red/Unq1/Unq2/Syn). |
 | `pid3.rs` | `pid3_isx`, `Pid3Config`, `Pid3Result`, `Antichain3` | 3-source PID atoms over the antichain lattice. |
 | `discrete_pid.rs` | `discrete_pid2`, `discrete_pid3` | Discrete `I_min` PID (Williams & Beer 2010). |
+| `sxpid.rs` | `discrete_sxpid2`, `discrete_sxpid3`, `SxAtom` | Discrete shared-exclusions PID `i^sx_∩` (Makkeh–Gutknecht–Wibral 2021); pointwise + averaged signed atoms, bit-faithful to IDTxl/Abzinger. |
 | `invariants.rs` / `ci.rs` | `co_information_*`, Shannon invariants | Co-/O-information, `r̄`, `v̄` screening stats. |
 | `geometry.rs` | intrinsic-dimension, distance, hyperbolicity | Geometry diagnostics for kNN-validity. |
 | `preprocess.rs` / `pls.rs` | `Standardizer`, `PcaProjector`, `PlsProjector`, … | Standardisation, PCA, hash projection, jitter, PLS. |
 | `bootstrap.rs` | `block_bootstrap`, `BootstrapConfig` | Dependence-aware uncertainty quantification. |
 | `bin/exp0.rs` | — | The `exp0` validation/diagnostic binary (see below). |
 
-A runnable end-to-end example (MI + 2-source PID on a synthetic system) lives at
-`crates/pid-core/examples/ksg_and_pid.rs`.
+Runnable end-to-end examples live in `crates/pid-core/examples/`: `ksg_and_pid.rs` (continuous MI +
+2-source `I^sx_∩` PID on a synthetic system) and `discrete_sxpid.rs` (discrete shared-exclusions PID
+on canonical logic gates, with deterministic reference-matching output).
 
 ## Build / test / lint (mirror CI)
 
