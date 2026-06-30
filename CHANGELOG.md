@@ -16,6 +16,30 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
   `parallel` feature stays **`f64::to_bits`-identical** to the serial path.
 
 ### Added
+- **Genuine discrete shared-exclusions PID `i^sx_∩` (`sxpid` module).** New `discrete_sxpid2` /
+  `discrete_sxpid3` implement the actual Makkeh–Gutknecht–Wibral (2021, Phys. Rev. E 103, 032149)
+  SxPID redundancy — the discrete sibling of the continuous `I^sx_∩` (`isx`/`pid2`/`pid3`), so the
+  library now decomposes information with **one** measure across regimes (the discrete path was
+  previously only Williams–Beer `I_min`, the measure SxPID was built to replace). Redundancy of an
+  antichain `α` is `i^sx_∩(t:α) = log[ P(𝔱 ∩ ⋃_j 𝔞_j) / (P(t)·P(⋃_j 𝔞_j)) ]` (informative
+  `−log P(⋃𝔞_j)` minus misinformative `log[P(t)/P(𝔱∩⋃𝔞_j)]`), with `P(⋃𝔞_j)` by inclusion–exclusion
+  over collections and standard Möbius inversion on the redundancy lattice (reusing the measure-
+  agnostic `discrete_mobius_inversion_3`). Output is **pointwise** (per-realization, signed) *and*
+  averaged atoms, each split into informative/misinformative parts. Units **nats**; atoms may be
+  negative (never clamped). Exposed to Python as `compute_discrete_sxpid2/3`.
+  - **Bit-faithful validation** (`tests/sxpid_reference.rs`): pointwise atom vectors reproduce the
+    Abzinger/SxPID reference (`testing/test_gates.py`) for XOR, AND, UNQ, RDN, COPY, PwUnq, SUM, the
+    **non-uniform** RndErr gate (probability-weighted averaging, independently re-derived), and a
+    **multi-dimensional** source; the averaged values match **IDTxl's own**
+    `test_estimators_multivariate_pid.py` to `1e-12` (e.g. `shared(AND)=0.12255624891826572` bits,
+    3-source HASH `shared=0.1926450779…`, `pairs=−0.22686079…`, `syn=0.24511249…` bits — ×`ln 2`).
+    The informative/misinformative split is pinned at the bottom *and* non-bottom lattice nodes, and
+    a realization-keyed check guards the realization↔atom assignment.
+  - **Axiom property tests** (`tests/sxpid_axioms.rs`): reconstruction (`Σ_α Π(α)=I(S;T)`),
+    self-redundancy, source-swap symmetry, real negativity, and an honest identity-axiom comparison —
+    on the two-bit COPY of independent sources `I_min` attributes the maximal **1 bit** of redundancy
+    while `i^sx` attributes only `log(4/3)≈0.415` bits (SxPID does **not** force averaged red to 0;
+    per Bertschinger et al. the identity axiom is incompatible with global non-negativity).
 - **`exp0` `--strict-band` / analytically-grounded `--strict-gate`.** `--strict-gate` no longer
   enforces a verdict on the default high-dimension sweep (whose `PIVOT`/`NO-GO` is the documented,
   expected outcome). It now enforces `GO` (exit code 3 otherwise) only on a **curated band** where
@@ -39,6 +63,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
   `EhrlichKsg` I^sx estimator reports a stable, n-independent Red≈0.21–0.24 nats for independent
   additive Gaussian sources where theory gives Red→0 (probed n=2k–16k); the un-tuned theory
   assertion is preserved in an `#[ignore]`d test documenting the disagreement.
+- **Analytic discrete-PID ground-truth gates (`discrete_pid.rs` tests).** Two canonical
+  Williams & Beer (2010) logic gates are now anchored to their closed-form `I_min` PID atoms at
+  machine precision (`tol = 1e-9`), on an *exactly enumerated* input distribution (each of the four
+  binary `(S1,S2)` states repeated equally, so the empirical law is exact and there is no sampling
+  error): **XOR** is pure synergy (`Red=Unq1=Unq2=0`, `Syn=ln 2`, `I(S_i;T)=0`), and **AND** matches
+  the derived `H(T)=¼ln4+¾ln(4/3)`, `I(S_i;T)=H(T)-½ln2`, `Red=I(S_i;T)`, `Unq_i=0`,
+  `Syn=H(T)-I(S_i;T)` (all values derived in-comment, not tuned). Both also assert the PID identity
+  `Red+Unq1+Unq2+Syn=I(S1,S2;T)` exactly.
+
+### Fixed
+- **`discrete_pid3_redundant_sources_dominant` tested the wrong lattice node.** The test read
+  `redundancies[6]` and called it "Redundancy", but index 6 (antichain `{{0,1,2}}`) is the lattice
+  **TOP**, whose `I_min` is the joint MI `I(S0,S1,S2;T)` — so the old `red > 0.3·I(S0;T)` assertion
+  was vacuous (joint MI always exceeds a marginal MI). It now checks the scientifically meaningful
+  claims for the near-copy-plus-noise system: the pairwise redundancy of the two near-copies
+  (`redundancies[7]`, antichain `{{0},{1}}`) is sizable, the global all-singletons redundancy
+  (`redundancies[16]`, diluted by the noise source S2) cannot exceed it, and the TOP node carries
+  at least `I(S0;T)`.
+
 - **`pid-runlog` logical trace hash** — `logical_trace_hash` / `logical_trace_hash_from_path`
   digest the ordered event sequence with wall-clock (`timestamp_ns`) fields excluded (the
   run-log filesystem URI/path is never part of an event, so it is excluded by construction).

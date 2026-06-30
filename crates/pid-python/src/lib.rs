@@ -1,11 +1,11 @@
 use numpy::{PyReadonlyArray2, PyUntypedArrayMethods};
 use pid_core::{
     average_degree_of_redundancy, average_degree_of_vulnerability, co_information_pairwise,
-    discrete_pid2, discrete_pid3, distance_concentration_stats, gromov_hyperbolicity,
-    intrinsic_dimension_levina_bickel, isx_redundancy, ksg_mi, ksg_mi_concat_xy, pid2_isx,
-    pid3_isx, DistanceConcentrationConfig, HashProjector, HyperbolicityConfig, IntrinsicDimConfig,
-    IsxConfig, IsxMethod, KsgConfig, MatRef, Metric, NegativeHandling, PcaProjector, Pid2Config,
-    Pid3Config, PlsProjector, Standardizer,
+    discrete_pid2, discrete_pid3, discrete_sxpid2, discrete_sxpid3, distance_concentration_stats,
+    gromov_hyperbolicity, intrinsic_dimension_levina_bickel, isx_redundancy, ksg_mi,
+    ksg_mi_concat_xy, pid2_isx, pid3_isx, DistanceConcentrationConfig, HashProjector,
+    HyperbolicityConfig, IntrinsicDimConfig, IsxConfig, IsxMethod, KsgConfig, MatRef, Metric,
+    NegativeHandling, PcaProjector, Pid2Config, Pid3Config, PlsProjector, Standardizer,
 };
 use pyo3::prelude::*;
 use std::collections::HashMap;
@@ -393,6 +393,69 @@ fn compute_discrete_pid3(
     Ok(map)
 }
 
+/// Compute discrete 2-source **shared-exclusions** PID (`i^sx_∩`, Makkeh/Gutknecht/Wibral 2021).
+///
+/// This is the genuine Wibral-group SxPID redundancy — the discrete sibling of the continuous
+/// `I^sx_∩` (`compute_pid2`) and a **different measure** from `compute_discrete_pid2` (which is
+/// Williams–Beer `I_min`). Returns the probability-weighted (averaged) atoms in **nats**; each
+/// atom is reported as net plus its informative/misinformative split. Atoms may be negative.
+#[pyfunction]
+#[pyo3(signature = (s1, s2, target, num_bins=10))]
+fn compute_discrete_sxpid2(
+    s1: PyReadonlyArray2<f64>,
+    s2: PyReadonlyArray2<f64>,
+    target: PyReadonlyArray2<f64>,
+    num_bins: usize,
+) -> PyResult<HashMap<String, f64>> {
+    let s1_mat = array_to_matref(&s1)?;
+    let s2_mat = array_to_matref(&s2)?;
+    let t_mat = array_to_matref(&target)?;
+    let out = discrete_sxpid2(s1_mat, s2_mat, t_mat, num_bins).map_err(pid_err)?;
+
+    let mut map = HashMap::new();
+    for (name, a) in [
+        ("redundancy", out.red),
+        ("unique_s1", out.unq1),
+        ("unique_s2", out.unq2),
+        ("synergy", out.syn),
+    ] {
+        map.insert(name.to_string(), a.net);
+        map.insert(format!("{name}_informative"), a.informative);
+        map.insert(format!("{name}_misinformative"), a.misinformative);
+    }
+    map.insert("mi_s1_t".to_string(), out.mi_s1_t);
+    map.insert("mi_s2_t".to_string(), out.mi_s2_t);
+    map.insert("mi_s1s2_t".to_string(), out.mi_s1s2_t);
+    Ok(map)
+}
+
+/// Compute discrete 3-source **shared-exclusions** PID (`i^sx_∩`) over the 18-antichain lattice.
+///
+/// Averaged atoms in **nats**, keyed by the antichain set-list (e.g. `"[1, 2, 4]"` for the
+/// all-singletons redundancy `{{0},{1},{2}}`). A different measure from `compute_discrete_pid3`
+/// (`I_min`); atoms may be negative.
+#[pyfunction]
+#[pyo3(signature = (s0, s1, s2, target, num_bins=10))]
+fn compute_discrete_sxpid3(
+    s0: PyReadonlyArray2<f64>,
+    s1: PyReadonlyArray2<f64>,
+    s2: PyReadonlyArray2<f64>,
+    target: PyReadonlyArray2<f64>,
+    num_bins: usize,
+) -> PyResult<HashMap<String, f64>> {
+    let s0_mat = array_to_matref(&s0)?;
+    let s1_mat = array_to_matref(&s1)?;
+    let s2_mat = array_to_matref(&s2)?;
+    let t_mat = array_to_matref(&target)?;
+    let out = discrete_sxpid3(s0_mat, s1_mat, s2_mat, t_mat, num_bins).map_err(pid_err)?;
+
+    let mut map = HashMap::new();
+    for (sets, atom) in out.antichains.iter().zip(&out.atoms) {
+        map.insert(format!("{sets:?}"), atom.net);
+    }
+    Ok(map)
+}
+
 /// Fit PLS (Partial Least Squares) supervised dimensionality reduction and project X.
 ///
 /// Projects high-dimensional X onto directions maximally correlated with target Y.
@@ -548,6 +611,8 @@ fn pid_core_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_pid3, m)?)?;
     m.add_function(wrap_pyfunction!(compute_discrete_pid2, m)?)?;
     m.add_function(wrap_pyfunction!(compute_discrete_pid3, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_discrete_sxpid2, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_discrete_sxpid3, m)?)?;
     m.add_function(wrap_pyfunction!(compute_invariants, m)?)?;
     m.add_function(wrap_pyfunction!(estimate_intrinsic_dimension, m)?)?;
     m.add_function(wrap_pyfunction!(estimate_gromov_delta, m)?)?;

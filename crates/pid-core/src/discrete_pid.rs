@@ -496,7 +496,7 @@ fn join_bins_triple(a: &[Vec<usize>], b: &[Vec<usize>], c: &[Vec<usize>]) -> Vec
 }
 
 /// 18 canonical antichains on {0,1,2}, encoded as bitmask arrays.
-fn discrete_antichains_3() -> [[u8; 3]; 18] {
+pub(crate) fn discrete_antichains_3() -> [[u8; 3]; 18] {
     [
         [0b001, 0, 0],
         [0b010, 0, 0],
@@ -598,7 +598,11 @@ fn discrete_imin_redundancy_3way(
 }
 
 /// Möbius inversion on the 3-source redundancy lattice to obtain PID atoms.
-fn discrete_mobius_inversion_3(
+///
+/// Measure-agnostic: it inverts any per-antichain *cumulative* functional that obeys
+/// `cumulative(α) = Σ_{β ⪯ α} atom(β)`. Reused by both the `I_min` path here and the
+/// shared-exclusions `i^sx_∩` path in the `sxpid` module.
+pub(crate) fn discrete_mobius_inversion_3(
     antichains: &[[u8; 3]],
     redundancies: &[f64],
 ) -> Vec<DiscretePid3Atom> {
@@ -770,6 +774,140 @@ mod tests {
         );
     }
 
+    /// Build an exactly-enumerated 2-input binary gate dataset: every (s1,s2) ∈ {0,1}²
+    /// combination repeated `reps` times, with `t = gate(s1,s2)`. Because each of the four
+    /// joint states appears equally often, the empirical distribution is *exact* (no sampling
+    /// error), so the binned `I_min` PID equals its analytic closed form to machine precision.
+    fn binary_gate_dataset(
+        reps: usize,
+        gate: impl Fn(u8, u8) -> u8,
+    ) -> (Vec<f64>, Vec<f64>, Vec<f64>, usize) {
+        let mut s1 = Vec::new();
+        let mut s2 = Vec::new();
+        let mut t = Vec::new();
+        for _ in 0..reps {
+            for a in 0u8..2 {
+                for b in 0u8..2 {
+                    s1.push(a as f64);
+                    s2.push(b as f64);
+                    t.push(gate(a, b) as f64);
+                }
+            }
+        }
+        let n = 4 * reps;
+        (s1, s2, t, n)
+    }
+
+    #[test]
+    fn discrete_pid2_xor_is_pure_synergy() {
+        // Williams & Beer (2010), canonical XOR gate, uniform independent inputs:
+        //   I(S1;T) = I(S2;T) = 0,  I(S1,S2;T) = ln 2  (1 bit)
+        //   Red = 0, Unq1 = Unq2 = 0, Syn = ln 2.
+        let (s1, s2, t, n) = binary_gate_dataset(64, |a, b| a ^ b);
+        let s1 = MatRef::new(&s1, n, 1).unwrap();
+        let s2 = MatRef::new(&s2, n, 1).unwrap();
+        let t = MatRef::new(&t, n, 1).unwrap();
+
+        let r = discrete_pid2(s1, s2, t, 2).unwrap();
+        let ln2 = 2.0f64.ln();
+        let tol = 1e-9;
+        assert!(
+            r.mi_s1_t.abs() < tol,
+            "I(S1;T) should be 0; got {}",
+            r.mi_s1_t
+        );
+        assert!(
+            r.mi_s2_t.abs() < tol,
+            "I(S2;T) should be 0; got {}",
+            r.mi_s2_t
+        );
+        assert!(
+            (r.mi_s1s2_t - ln2).abs() < tol,
+            "I(S1,S2;T) should be ln 2; got {}",
+            r.mi_s1s2_t
+        );
+        assert!(
+            r.redundancy.abs() < tol,
+            "Red should be 0; got {}",
+            r.redundancy
+        );
+        assert!(
+            r.unique_s1.abs() < tol,
+            "Unq1 should be 0; got {}",
+            r.unique_s1
+        );
+        assert!(
+            r.unique_s2.abs() < tol,
+            "Unq2 should be 0; got {}",
+            r.unique_s2
+        );
+        assert!(
+            (r.synergy - ln2).abs() < tol,
+            "Syn should be ln 2; got {}",
+            r.synergy
+        );
+        // Identity must hold exactly.
+        assert!((r.redundancy + r.unique_s1 + r.unique_s2 + r.synergy - r.mi_s1s2_t).abs() < tol);
+    }
+
+    #[test]
+    fn discrete_pid2_and_matches_williams_beer() {
+        // Williams & Beer (2010), canonical AND gate, uniform independent inputs.
+        // p(T=1) = 1/4. Analytic atoms (nats):
+        //   H(T) = 0.25·ln4 + 0.75·ln(4/3) = 0.5623351446...
+        //   I(S1;T) = I(S2;T) = H(T) − 0.5·ln2 = 0.2157615680...
+        //   Red = I(S1;T) (symmetric sources), Unq1 = Unq2 = 0,
+        //   Syn = I(S1,S2;T) − I(S1;T) = H(T) − I(S1;T) = 0.3465735903... = 0.5·ln4·... (= ln2/2·... )
+        let (s1, s2, t, n) = binary_gate_dataset(64, |a, b| a & b);
+        let s1 = MatRef::new(&s1, n, 1).unwrap();
+        let s2 = MatRef::new(&s2, n, 1).unwrap();
+        let t = MatRef::new(&t, n, 1).unwrap();
+
+        let r = discrete_pid2(s1, s2, t, 2).unwrap();
+
+        let h_t = 0.25 * 4.0f64.ln() + 0.75 * (4.0f64 / 3.0).ln();
+        let i_single = h_t - 0.5 * 2.0f64.ln();
+        let syn = h_t - i_single;
+        let tol = 1e-9;
+
+        assert!(
+            (r.mi_s1_t - i_single).abs() < tol,
+            "I(S1;T)={} want {i_single}",
+            r.mi_s1_t
+        );
+        assert!(
+            (r.mi_s2_t - i_single).abs() < tol,
+            "I(S2;T)={} want {i_single}",
+            r.mi_s2_t
+        );
+        assert!(
+            (r.mi_s1s2_t - h_t).abs() < tol,
+            "I(S1,S2;T)={} want {h_t}",
+            r.mi_s1s2_t
+        );
+        assert!(
+            (r.redundancy - i_single).abs() < tol,
+            "Red={} want {i_single}",
+            r.redundancy
+        );
+        assert!(
+            r.unique_s1.abs() < tol,
+            "Unq1 should be 0; got {}",
+            r.unique_s1
+        );
+        assert!(
+            r.unique_s2.abs() < tol,
+            "Unq2 should be 0; got {}",
+            r.unique_s2
+        );
+        assert!(
+            (r.synergy - syn).abs() < tol,
+            "Syn={} want {syn}",
+            r.synergy
+        );
+        assert!((r.redundancy + r.unique_s1 + r.unique_s2 + r.synergy - r.mi_s1s2_t).abs() < tol);
+    }
+
     #[test]
     fn quantize_rejects_bad_bins() {
         let data = vec![0.0f64; 10];
@@ -832,14 +970,39 @@ mod tests {
         let t_m = MatRef::new(&t, n, 1).unwrap();
 
         let result = discrete_pid3(s0_m, s1_m, s2_m, t_m, 10).unwrap();
-        // The top antichain {0,1,2} atom (synergy) should be small.
-        // Find the atom for antichain {0b001, 0b010, 0b100} (index 16).
-        // Redundancy (antichain {0b111}, index 6) should be positive and sizable.
-        let red = result.redundancies[6]; // {0b111}
+
+        // Lattice landmarks (see `discrete_antichains_3()`), redundancies in antichain order:
+        //   index 6  = {{0,1,2}}        — the single full collection = lattice TOP, whose
+        //              I_min equals the joint MI I(S0,S1,S2;T) (NOT a redundancy);
+        //   index 7  = {{0},{1}}        — pairwise redundancy of the two near-copies S0,S1;
+        //   index 16 = {{0},{1},{2}}    — global redundancy shared by *all three* sources,
+        //              hence diluted by the noise source S2.
+        let joint_top = result.redundancies[6]; // {0b111} — joint MI, not redundancy
+        let red_s0_s1 = result.redundancies[7]; // {{0},{1}} — pairwise redundancy
+        let red_all = result.redundancies[16]; // {{0},{1},{2}} — global redundancy
+
+        // The TOP node {{0,1,2}} is a *single* collection, so by the self-redundancy axiom its
+        // I_min equals the joint MI I(S0,S1,S2;T) exactly — a strong invariant, not just a bound.
         assert!(
-            red > 0.3 * result.mi_s0_t,
-            "Redundancy should be > 30% of MI for near-copies; Red={red}, MI={}",
+            (joint_top - result.mi_s0s1s2_t).abs() < 1e-9,
+            "TOP node {{0,1,2}} must equal the joint MI exactly; top={joint_top}, joint MI={}",
+            result.mi_s0s1s2_t
+        );
+
+        // Because S0 and S1 are near-copies, the information they *share* about T is sizable —
+        // close to I(S0;T). This is the genuine redundancy-dominance claim.
+        assert!(
+            red_s0_s1 > 0.3 * result.mi_s0_t,
+            "Pairwise redundancy of near-copies should be > 30% of I(S0;T); red_s0_s1={red_s0_s1}, MI={}",
             result.mi_s0_t
+        );
+
+        // Adding the pure-noise source S2 can only shrink the shared information: the global
+        // (all-three) redundancy must not exceed the pairwise redundancy of S0,S1.
+        assert!(
+            red_all <= red_s0_s1 + 1e-9,
+            "Global redundancy (incl. noise S2) must not exceed pairwise S0,S1 redundancy; \
+             red_all={red_all}, red_s0_s1={red_s0_s1}"
         );
     }
 

@@ -20,13 +20,47 @@ def test_module_exports():
     expected = [
         "compute_mi", "compute_redundancy", "compute_co_information",
         "compute_pid2", "compute_pid3", "compute_discrete_pid2",
-        "compute_discrete_pid3", "compute_invariants",
+        "compute_discrete_pid3", "compute_discrete_sxpid2",
+        "compute_discrete_sxpid3", "compute_invariants",
         "estimate_intrinsic_dimension", "estimate_gromov_delta",
         "distance_stats", "pls_transform", "standardize",
         "pca_transform", "hash_project",
     ]
     for fn in expected:
         assert hasattr(pid, fn), f"missing export: {fn}"
+
+
+def _gate2(rows, reps=8):
+    s1, s2, t = [], [], []
+    for _ in range(reps):
+        for a, b, c in rows:
+            s1.append([float(a)]); s2.append([float(b)]); t.append([float(c)])
+    return (np.array(s1), np.array(s2), np.array(t))
+
+
+def test_discrete_sxpid2_and_matches_idtxl():
+    # AND gate: IDTxl averaged shared(AND) = 0.12255624891826572 bits → nats.
+    s1, s2, t = _gate2([(0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 1)])
+    out = pid.compute_discrete_sxpid2(s1, s2, t, num_bins=2)
+    want = 0.12255624891826572 * np.log(2.0)
+    assert abs(out["redundancy"] - want) < 1e-9, out["redundancy"]
+    # Reconstruction: atoms sum to I(S1,S2;T).
+    total = out["redundancy"] + out["unique_s1"] + out["unique_s2"] + out["synergy"]
+    assert abs(total - out["mi_s1s2_t"]) < 1e-9
+    # Informative/misinformative split is reported and consistent.
+    assert abs(out["redundancy"]
+               - (out["redundancy_informative"] - out["redundancy_misinformative"])) < 1e-12
+
+
+def test_sxpid_attributes_less_redundancy_than_imin_on_copy():
+    # Two-bit COPY of independent sources: I_min over-attributes (1 bit), i^sx less (log 4/3).
+    rows = [(0, 0, 0), (0, 1, 1), (1, 0, 2), (1, 1, 3)]
+    s1, s2, t = _gate2(rows)
+    imin = pid.compute_discrete_pid2(s1, s2, t, num_bins=4)
+    sx = pid.compute_discrete_sxpid2(s1, s2, t, num_bins=4)
+    assert abs(imin["redundancy"] - np.log(2.0)) < 1e-9
+    assert abs(sx["redundancy"] - np.log(4.0 / 3.0)) < 1e-9
+    assert sx["redundancy"] < imin["redundancy"] - 1e-3
 
 
 def test_compute_mi_positive():

@@ -51,6 +51,7 @@ mod pipeline;
 mod pls;
 mod preprocess;
 mod stats;
+mod sxpid;
 
 pub use bootstrap::{block_bootstrap, block_bootstrap_paired, BootstrapConfig, BootstrapResult};
 pub use ci::{co_information_pairwise, co_information_triplet};
@@ -92,3 +93,7 @@ pub use pipeline::{
 };
 pub use pls::PlsProjector;
 pub use preprocess::{HashProjector, Jitter, PcaProjector, Standardizer};
+pub use sxpid::{
+    discrete_sxpid2, discrete_sxpid3, DiscreteSxPid2Result, DiscreteSxPid3Result, SxAtom,
+    SxPointwise2, SxPointwise3,
+};
