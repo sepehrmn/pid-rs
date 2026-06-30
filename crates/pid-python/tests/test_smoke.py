@@ -21,7 +21,7 @@ def test_module_exports():
         "compute_mi", "compute_redundancy", "compute_co_information",
         "compute_pid2", "compute_pid3", "compute_discrete_pid2",
         "compute_discrete_pid3", "compute_discrete_sxpid2",
-        "compute_discrete_sxpid3", "compute_invariants",
+        "compute_discrete_sxpid3", "compute_discrete_sxpid_n", "compute_invariants",
         "estimate_intrinsic_dimension", "estimate_gromov_delta",
         "distance_stats", "pls_transform", "standardize",
         "pca_transform", "hash_project",
@@ -50,6 +50,21 @@ def test_discrete_sxpid2_and_matches_idtxl():
     # Informative/misinformative split is reported and consistent.
     assert abs(out["redundancy"]
                - (out["redundancy_informative"] - out["redundancy_misinformative"])) < 1e-12
+
+
+def test_discrete_sxpid_n_four_sources():
+    # 4-way giant bit: all info in the all-singletons redundancy; reconstruction = ln 2.
+    s0, s1, s2, s3, t = [], [], [], [], []
+    for _ in range(4):
+        for b in (0.0, 1.0):
+            s0.append([b]); s1.append([b]); s2.append([b]); s3.append([b]); t.append([b])
+    arr = lambda v: np.array(v)
+    out = pid.compute_discrete_sxpid_n([arr(s0), arr(s1), arr(s2), arr(s3)], arr(t), num_bins=2)
+    assert len(out) == 166, f"4-source lattice should have 166 atoms; got {len(out)}"
+    total = sum(out.values())
+    assert abs(total - np.log(2.0)) < 1e-9, total
+    # The all-singletons key is "[1, 2, 4, 8]".
+    assert abs(out["[1, 2, 4, 8]"] - np.log(2.0)) < 1e-9
 
 
 def test_sxpid_attributes_less_redundancy_than_imin_on_copy():

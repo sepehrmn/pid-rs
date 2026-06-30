@@ -1,7 +1,8 @@
 use numpy::{PyReadonlyArray2, PyUntypedArrayMethods};
 use pid_core::{
     average_degree_of_redundancy, average_degree_of_vulnerability, co_information_pairwise,
-    discrete_pid2, discrete_pid3, discrete_sxpid2, discrete_sxpid3, distance_concentration_stats,
+    discrete_pid2, discrete_pid3, discrete_sxpid2, discrete_sxpid3, discrete_sxpid_n,
+    distance_concentration_stats,
     gromov_hyperbolicity, intrinsic_dimension_levina_bickel, isx_redundancy, ksg_mi,
     ksg_mi_concat_xy, pid2_isx, pid3_isx, DistanceConcentrationConfig, HashProjector,
     HyperbolicityConfig, IntrinsicDimConfig, IsxConfig, IsxMethod, KsgConfig, MatRef, Metric,
@@ -456,6 +457,33 @@ fn compute_discrete_sxpid3(
     Ok(map)
 }
 
+/// Compute discrete **shared-exclusions** PID (`i^sx_∩`) for an arbitrary number of sources
+/// (`2 ≤ len(sources) ≤ 4`, the count IDTxl's SxPID supports).
+///
+/// Averaged net atoms in **nats**, keyed by the antichain set-list of source bitmasks (e.g.
+/// `"[1, 2, 4, 8]"` is the all-singletons global redundancy for 4 sources). Same measure as
+/// `compute_discrete_sxpid2/3`, extended to the full lattice. Atoms may be negative.
+#[pyfunction]
+#[pyo3(signature = (sources, target, num_bins=10))]
+fn compute_discrete_sxpid_n(
+    sources: Vec<PyReadonlyArray2<f64>>,
+    target: PyReadonlyArray2<f64>,
+    num_bins: usize,
+) -> PyResult<HashMap<String, f64>> {
+    let src_mats: Vec<MatRef<'_>> = sources
+        .iter()
+        .map(array_to_matref)
+        .collect::<PyResult<_>>()?;
+    let t_mat = array_to_matref(&target)?;
+    let out = discrete_sxpid_n(&src_mats, t_mat, num_bins).map_err(pid_err)?;
+
+    let mut map = HashMap::new();
+    for (sets, atom) in out.antichains.iter().zip(&out.atoms) {
+        map.insert(format!("{sets:?}"), atom.net);
+    }
+    Ok(map)
+}
+
 /// Fit PLS (Partial Least Squares) supervised dimensionality reduction and project X.
 ///
 /// Projects high-dimensional X onto directions maximally correlated with target Y.
@@ -613,6 +641,7 @@ fn pid_core_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_discrete_pid3, m)?)?;
     m.add_function(wrap_pyfunction!(compute_discrete_sxpid2, m)?)?;
     m.add_function(wrap_pyfunction!(compute_discrete_sxpid3, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_discrete_sxpid_n, m)?)?;
     m.add_function(wrap_pyfunction!(compute_invariants, m)?)?;
     m.add_function(wrap_pyfunction!(estimate_intrinsic_dimension, m)?)?;
     m.add_function(wrap_pyfunction!(estimate_gromov_delta, m)?)?;

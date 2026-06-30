@@ -26,7 +26,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
   over collections and standard Möbius inversion on the redundancy lattice (reusing the measure-
   agnostic `discrete_mobius_inversion_3`). Output is **pointwise** (per-realization, signed) *and*
   averaged atoms, each split into informative/misinformative parts. Units **nats**; atoms may be
-  negative (never clamped). Exposed to Python as `compute_discrete_sxpid2/3`.
+  negative (never clamped). Exposed to Python as `compute_discrete_sxpid2/3` and the general
+  `compute_discrete_sxpid_n` (2–4 sources).
   - **Bit-faithful validation** (`tests/sxpid_reference.rs`): pointwise atom vectors reproduce the
     Abzinger/SxPID reference (`testing/test_gates.py`) for XOR, AND, UNQ, RDN, COPY, PwUnq, SUM, the
     **non-uniform** RndErr gate (probability-weighted averaging, independently re-derived), and a
