@@ -359,9 +359,12 @@ const UNCERTAINTY_DIM: usize = 10;
 // WHY NOT GATE ON THE FOUR SYNTHETIC SCENARIOS AT d<=8: empirically they are NOT a GO
 // regime, for two reasons that are genuine, reported FINDINGS — not bugs and not things
 // to tune away:
-//   * `independent_additive` zero-redundancy expects Red(I^sx) ~ 0, but EhrlichKsg stably
-//     reports Red ~ 0.2 nats (n-independent; see tests/gaussian_pid_atoms.rs strict-theory
-//     `#[ignore]`d assertion). I^sx genuinely over-attributes redundancy here.
+//     * `independent_additive`: this scenario compares the estimated atoms against an
+//       MMI/zero-redundancy expectation, which I^sx does not satisfy. NOTE (corrected): the true
+//       I^sx redundancy here is genuinely POSITIVE (~0.2 nats), not zero — confirmed against a
+//       closed-form oracle in tests/sxpid_gaussian_oracle.rs — so the EhrlichKsg estimate is
+//       CORRECT, and the mismatch is a measure/convention difference, NOT estimator over-
+//       attribution (an earlier comment here mis-stated this as a bias).
 //   * `redundant_copy`/`unique_s1` carry very high MI; KSG underestimates the JOINT
 //     (concatenated-source) MI relative to a marginal, tripping the monotonicity counter
 //     — the well-known KSG joint-space bias under strong dependence (Kraskov 2004 §IV;

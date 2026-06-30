@@ -61,15 +61,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 - **`tests/gaussian_pid_atoms.rs` — cited analytic Gaussian PID-*atom* regression.** The previous
   Gaussian test covered MI only; this adds atom-level ground truth for the continuous `I^sx_∩`
   PID2 estimator. Identical sources (`S1==S2==T+noise`) assert Red ≈ I(X;T) and Unq1≈Unq2≈Syn≈0;
-  independent additive sources (`S1⟂S2`, `T=S1+S2+noise`) assert the synergy-dominant regime with
-  the I^sx redundancy limiting case Red→0 (derived, not assumed). All expected values come from the
-  closed-form Gaussian-channel MI `I=-½ln(1-ρ²)` (Kraskov 2004; Cover & Thomas) and are commented
-  with their derivation — none tuned to the estimator. A separate, clearly-labelled Barrett-2015
-  Gaussian **MMI** bivariate-redundancy reference (`R_MMI=min(I(S1;T),I(S2;T))`) is included as a
-  sanity comparison only (MMI is a *different* measure; no `I^sx==MMI` claim). **Finding:** the
-  `EhrlichKsg` I^sx estimator reports a stable, n-independent Red≈0.21–0.24 nats for independent
-  additive Gaussian sources where theory gives Red→0 (probed n=2k–16k); the un-tuned theory
-  assertion is preserved in an `#[ignore]`d test documenting the disagreement.
+  independent additive sources (`S1⟂S2`, `T=S1+S2+noise`) assert the synergy-dominant regime. The
+  measure-independent MI terms come from the closed-form Gaussian-channel MI `I=-½ln(1-ρ²)` (Kraskov
+  2004; Cover & Thomas). A separate, clearly-labelled Barrett-2015 Gaussian **MMI** reference
+  (`R_MMI=min(I(S1;T),I(S2;T))`) is a sanity comparison only (MMI ≠ I^sx).
+- **Correction — `independent_additive` I^sx redundancy is positive, not zero.** An earlier version
+  of `tests/gaussian_pid_atoms.rs` *assumed* `Red→0` for independent additive Gaussian sources
+  ("derived, not assumed") and labelled the estimator's stable ~0.22 nats as over-attribution bias.
+  That assumption was **wrong**. The bin-width→0 limit of the discrete shared-exclusions redundancy
+  is `i^sx_∩(t:{1},{2}) → log[w1·e^{i1}+w2·e^{i2}]` (a probability-weighted average of pointwise-MI
+  exponentials), which is **strictly positive** for this system. New
+  `tests/sxpid_gaussian_oracle.rs` provides the **closed-form numerical oracle** (~0.225 nats) and
+  asserts the KSG `I^sx_∩` estimator converges to it; the discrete `i^sx` in the fine-bin limit
+  triangulates the same value. The false `Red==0` assertion and the "estimator bias" framing were
+  removed from `gaussian_pid_atoms.rs`, `bin/exp0.rs`, and `AGENTS.md`.
 - **Analytic discrete-PID ground-truth gates (`discrete_pid.rs` tests).** Two canonical
   Williams & Beer (2010) logic gates are now anchored to their closed-form `I_min` PID atoms at
   machine precision (`tol = 1e-9`), on an *exactly enumerated* input distribution (each of the four

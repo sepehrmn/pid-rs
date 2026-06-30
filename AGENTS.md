@@ -130,8 +130,10 @@ pytest crates/pid-python/tests -q
     Cover–Thomas Gaussian values within the scale-aware tolerance. `--strict-gate` implies
     `--strict-band` (which runs the band and reports it without enforcing). The four synthetic
     scenarios are still run at `d ∈ {2,4,8}` as a **non-gating** diagnostic alongside the band; they
-    are a known non-`GO` regime (KSG over-attributes I^sx redundancy on `independent_additive`, and
-    underestimates the joint MI under strong dependence) — those are reported findings, not
+    are a known non-`GO` regime (the `independent_additive` atom check uses an MMI/zero-redundancy
+    expectation that I^sx does not satisfy — the I^sx redundancy there is genuinely positive ~0.2
+    nats, *correct* and oracle-confirmed in `tests/sxpid_gaussian_oracle.rs`, not estimator bias —
+    and KSG underestimates the joint MI under strong dependence) — those are reported findings, not
     regressions, and must **not** be "fixed" by loosening the gate's tolerances.
 - **Scientific changes:** a change that alters a numerical result must justify *why* the new value is
   correct (analytic ground truth or a cited paper), not merely that tests still pass.

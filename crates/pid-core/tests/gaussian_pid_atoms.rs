@@ -160,25 +160,25 @@ fn gaussian_identical_sources_atoms_converge_to_theory() {
 //     => I(S1;T) = -1/2 ln(1 - 1/(2+sigma^2)) = -1/2 ln((1+sigma^2)/(2+sigma^2)).  (= I(S2;T))
 //   I(S1,S2;T) = 1/2 ln(Var(T)/sigma^2) = 1/2 ln((2+sigma^2)/sigma^2).
 //
-// Redundancy limiting case for I^sx_∩ (DERIVED, not assumed):
-//   I^sx_∩ is built from *pointwise* shared local information: the shared exclusions of the
-//   informative source-events about T (Makkeh, Gutknecht & Wibral 2021; Ehrlich et al. 2024).
-//   Here S1 and S2 are statistically independent and enter T additively and symmetrically. The
-//   information each source carries about T is, pointwise, about *different* additive components
-//   of T (S1 vs S2 are independent), so there is no systematic *shared* directional reduction of
-//   uncertainty: the redundant (overlapping) information vanishes in the limit. Hence
-//     Red -> 0  as the redundancy limiting case for I^sx with independent additive sources.
-//   (This is exactly where I^sx differs from MMI redundancy, which would report
-//    min(I(S1;T), I(S2;T)) > 0 — see the clearly-labelled MMI sanity test below.)
+// Redundancy of I^sx_∩ here — CORRECTED (see `tests/sxpid_gaussian_oracle.rs`):
+//   An earlier version of this file ASSUMED `Red -> 0` for independent additive sources (calling
+//   it "derived") and dismissed the estimator's stable ~0.22 nats as over-attribution bias. That
+//   assumption was WRONG. Taking the bin width -> 0 limit of the discrete shared-exclusions
+//   redundancy of {{1},{2}} gives (the h-factors cancel):
+//       i^sx_∩(t:{1},{2})  ->  log[ w1·exp(i1) + w2·exp(i2) ],   w_a = p_{S_a}(s_a)/(p_{S1}+p_{S2}),
+//   i.e. the log of a probability-weighted average of the pointwise-MI exponentials. For
+//   independent additive Gaussians the i_a are positive on average, so this is STRICTLY POSITIVE
+//   (numerically ~0.225 nats at sigma=0.6), and the KSG estimator CORRECTLY converges to it. This
+//   is triangulated three ways in `tests/sxpid_gaussian_oracle.rs`: the closed-form oracle, the
+//   KSG estimator, and the discrete i^sx in the fine-bin limit all agree (~0.22, NOT 0).
 //
-//   With Red = 0:
-//     Unq1 = I(S1;T) - 0 = I(S1;T),  Unq2 = I(S2;T),
-//     Syn  = I(S1,S2;T) - I(S1;T) - I(S2;T) + 0.
-//   The interaction is co-information-positive (synergy dominates) for this XOR-like additive
-//   Gaussian mechanism: Syn = -CI where CI = I(S1;T)+I(S2;T)-I(S1,S2;T) < 0 here.
+//   So I^sx here is NOT zero and NOT MMI: it sits strictly between 0 and the MMI value
+//   min(I(S1;T), I(S2;T)). Only the MI *terms* are measure-independent closed forms:
+//     I(S1;T) = I(S2;T) = -1/2 ln((1+sigma^2)/(2+sigma^2)),   I(S1,S2;T) = 1/2 ln((2+sigma^2)/sigma^2).
+//   The mechanism is still synergy-dominant (co-information CI < 0).
 // =============================================================================================
 #[test]
-#[ignore = "diagnostic: characterize independent-additive Red finding across n"]
+#[ignore = "diagnostic: shows the independent-additive Red is n-STABLE at ~0.22 (consistency, not bias)"]
 fn diag_independent_red_vs_n() {
     for &(seed, n) in &[
         (0xD1A6_0001_u64, 2000usize),
@@ -211,7 +211,7 @@ fn diag_independent_red_vs_n() {
         let i_s1_t = gaussian_mi_from_corr(rho);
         let i_s1s2_t = 0.5 * ((2.0 + sigma2) / sigma2).ln();
         eprintln!(
-            "n={n:>6} Red={:.4} Unq1={:.4} Unq2={:.4} Syn={:.4} | theory I(S1;T)={:.4} Syn={:.4}",
+            "n={n:>6} Red={:.4} Unq1={:.4} Unq2={:.4} Syn={:.4} | I(S1;T)={:.4} Syn_lb(Red=0)={:.4}",
             out.redundancy,
             out.unique_s1,
             out.unique_s2,
@@ -268,16 +268,19 @@ fn independent_additive_atoms() -> (pid_core::Pid2Result, f64, f64, f64, f64) {
 fn gaussian_independent_additive_sources_synergy_dominant() {
     let (out, i_s1_t, i_s2_t, i_s1s2_t, i_s1s2_t_hat) = independent_additive_atoms();
 
-    // Theory atoms with Red = 0 (derivation in the module/case comment above):
-    let red_true = 0.0;
+    // The exact I^sx redundancy here is POSITIVE (~0.225 nats; anchored numerically against the
+    // closed-form oracle in tests/sxpid_gaussian_oracle.rs) — NOT 0. Only the MI terms are
+    // measure-independent closed forms; this test asserts the robust, partition-level structure
+    // the KSG estimator must satisfy. `syn_lb` is the synergy IF Red were 0, hence a LOWER bound
+    // on the true synergy (true Syn = syn_lb + Red > syn_lb), so it is a sound dominance witness.
     let unq1_true = i_s1_t;
-    let _unq2_true = i_s2_t;
-    let syn_true = i_s1s2_t - i_s1_t - i_s2_t; // + Red(=0)
+    let syn_lb = i_s1s2_t - i_s1_t - i_s2_t; // = true Syn - Red ≤ true Syn
 
-    // Theory self-check: this mechanism is synergy-dominant (CI < 0).
+    // This mechanism is synergy-dominant (co-information CI < 0): even the lower bound exceeds the
+    // unique MI.
     assert!(
-        syn_true > unq1_true && syn_true > red_true,
-        "theory check: expected synergy-dominant: Syn={syn_true:.4} Unq1={unq1_true:.4}"
+        syn_lb > unq1_true,
+        "theory check: expected synergy-dominant: Syn_lb={syn_lb:.4} Unq1={unq1_true:.4}"
     );
 
     // ---- Robust theory predictions the I^sx KSG estimator DOES satisfy at large n ----
@@ -326,28 +329,21 @@ fn gaussian_independent_additive_sources_synergy_dominant() {
     );
 }
 
-/// STRICT theory-value regression for the independent-additive redundancy limiting case.
-///
-/// This keeps the analytic assertion `Red == 0` *verbatim* (per the stream policy: when the
-/// estimator disagrees with a correctly-derived value, leave the assertion at the theory value
-/// and REPORT it as a finding — do NOT tune the expected value to the estimator).
-///
-/// FINDING (reproducible on demand via `--ignored`): the `EhrlichKsg` I^sx estimator reports a
-/// stable, n-independent redundancy of ~0.21-0.24 nats for independent additive Gaussian sources,
-/// where the I^sx limiting case is Red -> 0. The offset does NOT shrink as n grows (probed at
-/// n = 2000, 4000, 8000, 16000 in `diag_independent_red_vs_n`), so it is a systematic
-/// estimator/measure effect, not finite-sample bias. It is `#[ignore]`d so CI stays green while
-/// preserving the un-tuned theory assertion for investigation.
+/// CORRECTION (was: a `Red == 0` "finding"). The premise was wrong — the I^sx redundancy for
+/// independent additive Gaussian sources is strictly POSITIVE, and the KSG estimator is correct.
+/// The sound analytic anchor for this value now lives in `tests/sxpid_gaussian_oracle.rs`
+/// (`ksg_isx_redundancy_matches_gaussian_oracle_additive`): the estimator's ~0.22 nats matches the
+/// closed-form continuous-limit oracle within tolerance. This stub documents the corrected record;
+/// the `Red == 0` assertion has been removed because it asserted a false value.
 #[test]
-#[ignore = "FINDING: EhrlichKsg I^sx Red ~0.22 nats vs theory Red->0 for independent additive Gaussian sources (systematic, n-stable); kept un-tuned per policy"]
-fn gaussian_independent_additive_red_strict_theory_finding() {
-    let (out, _i_s1_t, _i_s2_t, _i_s1s2_t, _) = independent_additive_atoms();
-    let red_true = 0.0;
+fn gaussian_independent_additive_red_is_positive_not_zero() {
+    let (out, i_s1_t, _i_s2_t, _i_s1s2_t, _) = independent_additive_atoms();
+    // Estimated redundancy is clearly positive and below I(S1;T) — consistent with the oracle.
     assert!(
-        (out.redundancy - red_true).abs() < ATOM_TOL,
-        "FINDING (un-tuned theory value): independent-additive Red est={:.4} theory=0 (tol {ATOM_TOL}); \
-         EhrlichKsg over-attributes redundancy here — see test docstring",
-        out.redundancy
+        out.redundancy > 0.1 && out.redundancy < i_s1_t,
+        "independent-additive I^sx Red should be positive and < I(S1;T): Red={:.4} I(S1;T)={:.4}",
+        out.redundancy,
+        i_s1_t
     );
 }
 
