@@ -508,6 +508,229 @@ fn join_triple(a: &[Vec<usize>], b: &[Vec<usize>], c: &[Vec<usize>]) -> Vec<Vec<
         .collect()
 }
 
+// ----------------------------------------------------------------------------------------------
+// General n-source (n = 2..=4) — same redundancy lattice machinery for arbitrary source count.
+// The per-realization probability primitives (`union_prob`, `node_terms`) are already n-general;
+// the only n-specific parts are the antichain enumeration and the Möbius inversion below. The
+// 2- and 3-source `discrete_sxpid2/3` paths above are kept as the validated reference; a test
+// pins this general path to reproduce them exactly.
+// ----------------------------------------------------------------------------------------------
+
+/// One pointwise decomposition for the general n-source lattice.
+#[derive(Debug, Clone)]
+pub struct SxPointwiseN {
+    /// The realization as per-variable binned labels: `n_sources` sources then the target.
+    pub realization: Vec<Vec<usize>>,
+    pub prob: f64,
+    /// Atoms aligned with [`DiscreteSxPidNResult::antichains`].
+    pub atoms: Vec<SxAtom>,
+}
+
+/// Result of a general n-source discrete shared-exclusions PID.
+#[derive(Debug, Clone)]
+pub struct DiscreteSxPidNResult {
+    pub n_sources: usize,
+    /// Lattice nodes as set-lists of source bitmasks (canonical: each list sorted ascending).
+    pub antichains: Vec<Vec<u8>>,
+    /// Averaged atoms, aligned with `antichains`.
+    pub atoms: Vec<SxAtom>,
+    pub pointwise: Vec<SxPointwiseN>,
+    /// Joint MI `I(S_0,…,S_{n-1}; T)` — the sum of all averaged net atoms (reconstruction).
+    pub joint_mi: f64,
+    pub num_bins: usize,
+}
+
+impl DiscreteSxPidNResult {
+    /// Averaged atom for an antichain given as a slice of bitmasks (order-insensitive).
+    pub fn atom(&self, sets: &[u8]) -> Option<SxAtom> {
+        let mut want = sets.to_vec();
+        want.sort_unstable();
+        self.antichains
+            .iter()
+            .position(|ac| *ac == want)
+            .map(|i| self.atoms[i])
+    }
+}
+
+/// `a ⪯ b` on the redundancy lattice: every collection in `b` contains some collection in `a`.
+/// (`aa ⊆ bb` is tested as `aa & !bb == 0` — no bit of `aa` lies outside `bb`.)
+fn leq_n(a: &[u8], b: &[u8]) -> bool {
+    b.iter().all(|&bb| a.iter().any(|&aa| aa & !bb == 0))
+}
+
+/// All antichains over the non-empty subsets of `{0..n}` (n ≤ 4), each canonicalised to an
+/// ascending mask list. Brute-force over the powerset of the `2^n − 1` non-empty masks.
+fn antichains_n(n: usize) -> Vec<Vec<u8>> {
+    let masks: Vec<u8> = (1u16..(1u16 << n)).map(|m| m as u8).collect();
+    let mut out = Vec::new();
+    for combo in 1u32..(1u32 << masks.len()) {
+        let sel: Vec<u8> = masks
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| combo & (1 << i) != 0)
+            .map(|(_, &m)| m)
+            .collect();
+        // Antichain iff no member is a subset of another.
+        let is_antichain =
+            (0..sel.len()).all(|i| (0..sel.len()).all(|j| i == j || (sel[i] & sel[j]) != sel[i]));
+        if is_antichain {
+            out.push(sel); // already ascending: `masks` is ascending and the filter preserves order
+        }
+    }
+    out
+}
+
+/// Möbius inversion of a per-antichain cumulative vector into atoms (general n).
+fn mobius_n(antichains: &[Vec<u8>], cumulative: &[f64]) -> Vec<f64> {
+    let m = antichains.len();
+    let topo = topo_order_n(antichains);
+    let mut atoms = vec![0.0f64; m];
+    for (pos, &idx) in topo.iter().enumerate() {
+        let mut val = cumulative[idx];
+        for &j in &topo[..pos] {
+            if leq_n(&antichains[j], &antichains[idx]) {
+                val -= atoms[j];
+            }
+        }
+        atoms[idx] = val;
+    }
+    atoms
+}
+
+/// Topological order (minimal elements first) of the antichain lattice.
+fn topo_order_n(antichains: &[Vec<u8>]) -> Vec<usize> {
+    let mut remaining: Vec<usize> = (0..antichains.len()).collect();
+    let mut out = Vec::with_capacity(remaining.len());
+    while !remaining.is_empty() {
+        let mut mins: Vec<usize> = remaining
+            .iter()
+            .copied()
+            .filter(|&i| {
+                !remaining
+                    .iter()
+                    .any(|&j| j != i && leq_n(&antichains[j], &antichains[i]))
+            })
+            .collect();
+        mins.sort_unstable();
+        let chosen = mins[0];
+        out.push(chosen);
+        remaining.retain(|&x| x != chosen);
+    }
+    out
+}
+
+/// Discrete shared-exclusions PID for an arbitrary number of sources (`2 ≤ n ≤ 4`).
+///
+/// Same measure as [`discrete_sxpid2`]/[`discrete_sxpid3`] (which it reproduces exactly), extended
+/// to the full antichain lattice for up to four sources — matching the source count IDTxl's SxPID
+/// estimator supports. Atoms are keyed by their antichain (a set-list of source bitmasks), e.g.
+/// `&[0b0001, 0b0010, 0b0100, 0b1000]` is the all-singletons (global) redundancy for `n = 4`.
+pub fn discrete_sxpid_n(
+    sources: &[MatRef<'_>],
+    target: MatRef<'_>,
+    num_bins: usize,
+) -> PidResult<DiscreteSxPidNResult> {
+    let n_sources = sources.len();
+    if !(2..=4).contains(&n_sources) {
+        return Err(PidError::NotImplemented {
+            feature: "discrete_sxpid_n supports 2..=4 sources",
+        });
+    }
+    if num_bins < 2 {
+        return Err(PidError::InvalidConfig {
+            context: "discrete_sxpid_n",
+            message: "num_bins must be >= 2",
+        });
+    }
+    let n = target.nrows();
+    for s in sources {
+        if s.nrows() != n {
+            return Err(PidError::RowCountMismatch {
+                context: "discrete_sxpid_n",
+                left_rows: n,
+                right_rows: s.nrows(),
+            });
+        }
+    }
+
+    let source_bins: Vec<Vec<Vec<usize>>> = sources
+        .iter()
+        .map(|s| quantize_equal_width(*s, num_bins))
+        .collect::<PidResult<_>>()?;
+    let t_bins = quantize_equal_width(target, num_bins)?;
+
+    // Joint MI I(S_0..S_{n-1}; T) for the reconstruction field.
+    let mut joined = vec![Vec::new(); n];
+    for sb in &source_bins {
+        for (i, row) in sb.iter().enumerate() {
+            joined[i].extend_from_slice(row);
+        }
+    }
+    let joint_mi = discrete_mi(&joined, &t_bins, num_bins)?;
+
+    // var_bins = sources then target.
+    let mut var_bins: Vec<&[Vec<usize>]> = source_bins.iter().map(|v| v.as_slice()).collect();
+    var_bins.push(&t_bins);
+    let pmf = build_pmf(&var_bins);
+
+    let antichains = antichains_n(n_sources);
+    let m = antichains.len();
+
+    let mut pointwise = Vec::with_capacity(pmf.len());
+    let mut avg = vec![[0.0f64; 3]; m];
+
+    for (rlz, prob) in &pmf {
+        let mut cum_plus = vec![0.0f64; m];
+        let mut cum_minus = vec![0.0f64; m];
+        let mut cum_cap = vec![0.0f64; m];
+        for (idx, collections) in antichains.iter().enumerate() {
+            let (ip, im, ic) = node_terms(&pmf, rlz, collections, n_sources)?;
+            cum_plus[idx] = ip;
+            cum_minus[idx] = im;
+            cum_cap[idx] = ic;
+        }
+        let pi_plus = mobius_n(&antichains, &cum_plus);
+        let pi_minus = mobius_n(&antichains, &cum_minus);
+        let pi_net = mobius_n(&antichains, &cum_cap);
+
+        let mut atoms = Vec::with_capacity(m);
+        for i in 0..m {
+            let a = SxAtom {
+                informative: pi_plus[i],
+                misinformative: pi_minus[i],
+                net: pi_net[i],
+            };
+            avg[i][0] += prob * a.informative;
+            avg[i][1] += prob * a.misinformative;
+            avg[i][2] += prob * a.net;
+            atoms.push(a);
+        }
+        pointwise.push(SxPointwiseN {
+            realization: rlz.clone(),
+            prob: *prob,
+            atoms,
+        });
+    }
+
+    let atoms_avg: Vec<SxAtom> = avg
+        .iter()
+        .map(|a| SxAtom {
+            informative: a[0],
+            misinformative: a[1],
+            net: a[2],
+        })
+        .collect();
+
+    Ok(DiscreteSxPidNResult {
+        n_sources,
+        antichains,
+        atoms: atoms_avg,
+        pointwise,
+        joint_mi,
+        num_bins,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

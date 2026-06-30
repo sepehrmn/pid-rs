@@ -35,6 +35,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
     3-source HASH `shared=0.1926450779…`, `pairs=−0.22686079…`, `syn=0.24511249…` bits — ×`ln 2`).
     The informative/misinformative split is pinned at the bottom *and* non-bottom lattice nodes, and
     a realization-keyed check guards the realization↔atom assignment.
+  - **General `n`-source path** (`discrete_sxpid_n`, `2 ≤ n ≤ 4`, the count IDTxl's SxPID
+    supports): same measure over the full antichain lattice, with a brute-force antichain
+    enumeration (the 4-source lattice has the correct **166** nodes) and general Möbius inversion.
+    Validated to reproduce `discrete_sxpid2`/`discrete_sxpid3` **bit-for-bit** (1e-12) and to
+    satisfy reconstruction + exact source-swap symmetry at 4 sources. Bootstrap CIs for the atoms
+    via `bootstrap_discrete_sxpid2`.
   - **Axiom property tests** (`tests/sxpid_axioms.rs`): reconstruction (`Σ_α Π(α)=I(S;T)`),
     self-redundancy, source-swap symmetry, real negativity, and an honest identity-axiom comparison —
     on the two-bit COPY of independent sources `I_min` attributes the maximal **1 bit** of redundancy

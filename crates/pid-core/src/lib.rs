@@ -94,6 +94,6 @@ pub use pipeline::{
 pub use pls::PlsProjector;
 pub use preprocess::{HashProjector, Jitter, PcaProjector, Standardizer};
 pub use sxpid::{
-    discrete_sxpid2, discrete_sxpid3, DiscreteSxPid2Result, DiscreteSxPid3Result, SxAtom,
-    SxPointwise2, SxPointwise3,
+    discrete_sxpid2, discrete_sxpid3, discrete_sxpid_n, DiscreteSxPid2Result, DiscreteSxPid3Result,
+    DiscreteSxPidNResult, SxAtom, SxPointwise2, SxPointwise3, SxPointwiseN,
 };
