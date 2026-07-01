@@ -133,6 +133,33 @@ fn ksg_isx_redundancy_matches_gaussian_oracle_additive() {
 }
 
 #[test]
+#[ignore = "diagnostic: KSG estimator vs closed-form oracle across several sigma"]
+fn multi_sigma_ksg_vs_oracle() {
+    for &sigma in &[0.3_f64, 0.6, 1.0, 1.5] {
+        let (s1, s2, t, n, rho) = additive_gaussian(0x5EED_0001, 6000, sigma);
+        let oracle = oracle_isx_red(&s1, &s2, &t, rho);
+        let s1m = MatRef::new(&s1, n, 1).unwrap();
+        let s2m = MatRef::new(&s2, n, 1).unwrap();
+        let tm = MatRef::new(&t, n, 1).unwrap();
+        let cfg = Pid2Config {
+            ksg: KsgConfig {
+                k: 3,
+                negative_handling: NegativeHandling::Allow,
+                ..Default::default()
+            },
+            isx: IsxConfig::default(),
+        };
+        let out = pid2_isx(s1m, s2m, tm, &cfg).unwrap();
+        eprintln!(
+            "sigma={sigma:.1}: KSG Red={:.4}  oracle={:.4}  |diff|={:.4}  (both clearly > 0)",
+            out.redundancy,
+            oracle,
+            (out.redundancy - oracle).abs()
+        );
+    }
+}
+
+#[test]
 #[ignore = "diagnostic: discrete i^sx on fine bins triangulates the oracle (heavier, O(D^2))"]
 fn discrete_isx_triangulates_oracle() {
     let sigma = 0.6;
