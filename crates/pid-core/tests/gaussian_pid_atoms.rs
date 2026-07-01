@@ -271,16 +271,16 @@ fn gaussian_independent_additive_sources_synergy_dominant() {
     // The exact I^sx redundancy here is POSITIVE (~0.225 nats; anchored numerically against the
     // closed-form oracle in tests/sxpid_gaussian_oracle.rs) — NOT 0. Only the MI terms are
     // measure-independent closed forms; this test asserts the robust, partition-level structure
-    // the KSG estimator must satisfy. `syn_lb` is the synergy IF Red were 0, hence a LOWER bound
-    // on the true synergy (true Syn = syn_lb + Red > syn_lb), so it is a sound dominance witness.
-    let unq1_true = i_s1_t;
-    let syn_lb = i_s1s2_t - i_s1_t - i_s2_t; // = true Syn - Red ≤ true Syn
-
-    // This mechanism is synergy-dominant (co-information CI < 0): even the lower bound exceeds the
-    // unique MI.
+    // the KSG estimator must satisfy. `syn_lb = I(S1,S2;T) - I(S1;T) - I(S2;T)` equals the true
+    // synergy when Red = 0, and since the true Red > 0 it is a strict LOWER BOUND on the true
+    // synergy (true Syn = syn_lb + Red > syn_lb). Likewise the true unique atom
+    // Unq1 = I(S1;T) - Red < I(S1;T), so `i_s1_t` is an UPPER BOUND on Unq1. Hence
+    // `syn_lb > I(S1;T)` implies (true Syn) > syn_lb > I(S1;T) > Unq1 — a sound synergy-dominance
+    // witness that needs neither the exact Red nor the estimator.
+    let syn_lb = i_s1s2_t - i_s1_t - i_s2_t; // ≤ true Syn
     assert!(
-        syn_lb > unq1_true,
-        "theory check: expected synergy-dominant: Syn_lb={syn_lb:.4} Unq1={unq1_true:.4}"
+        syn_lb > i_s1_t, // I(S1;T) ≥ true Unq1
+        "synergy-dominant witness: Syn_lb={syn_lb:.4} must exceed I(S1;T)={i_s1_t:.4}"
     );
 
     // ---- Robust theory predictions the I^sx KSG estimator DOES satisfy at large n ----

@@ -113,11 +113,20 @@ fn ksg_isx_redundancy_matches_gaussian_oracle_additive() {
         isx: IsxConfig::default(),
     };
     let out = pid2_isx(s1m, s2m, tm, &cfg).unwrap();
+    eprintln!(
+        "additive-Gaussian I^sx Red: KSG estimate = {:.4}, oracle = {:.4}, |diff| = {:.4}",
+        out.redundancy,
+        oracle,
+        (out.redundancy - oracle).abs()
+    );
 
-    // KSG estimate converges to the oracle within the documented kNN-PID tolerance.
+    // KSG estimate converges to the oracle. On this fixed seed the agreement is ~0.004 nats
+    // (printed above); the 0.05 bound leaves margin for the kNN finite-sample term while still
+    // being a strong statement — and, decisively, it excludes 0 (the old false "Red→0" claim),
+    // which is ~0.22 away.
     assert!(
-        (out.redundancy - oracle).abs() < 0.08,
-        "KSG I^sx Red {:.4} should match Gaussian oracle {:.4} (NOT 0) within 0.08 nats",
+        (out.redundancy - oracle).abs() < 0.05,
+        "KSG I^sx Red {:.4} should match Gaussian oracle {:.4} (NOT 0) within 0.05 nats",
         out.redundancy,
         oracle
     );
